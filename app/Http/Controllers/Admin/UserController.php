@@ -61,7 +61,12 @@ class UserController extends Controller
             'email'     => 'required|email|unique:users,email',
             'telephone' => 'required|string|max:50',
             'role'      => 'required|in:admin,chauffeur,eleve',
-            'password'  => 'required|min:6|confirmed',
+          'password'  => [
+    'required',
+    'min:8',
+    'confirmed',
+    'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.#_-])[A-Za-z\d@$!%*?&.#_-]+$/'
+],
         ],[
 'nom.required' => 'Le nom est obligatoire',
 'prenom.required' => 'Le prénom est obligatoire',
