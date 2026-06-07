@@ -1,67 +1,229 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="py-10 px-4 sm:px-6 lg:px-8 bg-gray-50 text-[#346693] min-h-screen">
+
+<div class="py-8 px-4 bg-gray-50 min-h-screen">
+
     <div class="max-w-7xl mx-auto">
 
-        {{-- TITRE --}}
-        <div class="text-center mb-10">
-            <h1 class="text-5xl font-extrabold uppercase tracking-tight font-serif text-[#F16522]">
-                📊 Rapports et Statistiques
-            </h1>
-        </div>
+        <h1 class="text-center text-5xl font-extrabold text-[#F16522] mb-8">
+            📊 Rapports & Statistiques
+        </h1>
 
-        <hr class="border-[#346693]/20 my-6">
+        {{-- KPI --}}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
 
-        {{-- STATISTIQUES GÉNÉRALES --}}
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <div class="bg-white rounded-xl shadow-xl p-5 border border-[#346693]/20 border-t-4 border-t-[#346693]">
-                <h2 class="text-xl font-bold mb-3 text-[#346693]">Statistiques générales</h2>
-                <div class="space-y-3">
-                    <p class="flex justify-between text-lg"><span>Chauffeurs</span><span class="font-extrabold text-2xl text-[#F16522]">{{ $chauffeursCount }}</span></p>
-                    <p class="flex justify-between text-lg"><span>Élèves</span><span class="font-extrabold text-2xl text-[#F16522]">{{ $elevesCount }}</span></p>
-                    <p class="flex justify-between text-lg"><span>Transports</span><span class="font-extrabold text-2xl text-[#F16522]">{{ $transportsCount }}</span></p>
-                    <p class="flex justify-between text-lg"><span>Trajets</span><span class="font-extrabold text-2xl text-[#F16522]">{{ $trajetsCount }}</span></p>
-                </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 hover:scale-105 transition duration-300">
+                <h3 class="text-gray-500">Chauffeurs</h3>
+                <p class="text-4xl font-bold text-[#346693]">
+                    {{ $chauffeursCount }}
+                </p>
             </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6 hover:scale-105 transition duration-300">
+                <h3 class="text-gray-500">Élèves</h3>
+                <p class="text-4xl font-bold text-[#346693]">
+                    {{ $elevesCount }}
+                </p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6 hover:scale-105 transition duration-300">
+                <h3 class="text-gray-500">Transports</h3>
+                <p class="text-4xl font-bold text-[#346693]">
+                    {{ $transportsCount }}
+                </p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6 hover:scale-105 transition duration-300">
+                <h3 class="text-gray-500">Trajets</h3>
+                <p class="text-4xl font-bold text-[#346693]">
+                    {{ $trajetsCount }}
+                </p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6 hover:scale-105 transition duration-300">
+                <h3 class="text-gray-500">Bus actifs</h3>
+                <p class="text-4xl font-bold text-green-600">
+                    {{ $busActifs }}
+                </p>
+            </div>
+
+        </div>
+ {{-- Filtres dates --}}
+<form method="GET" action="{{ route('admin.reports') }}" 
+      class="bg-white rounded-xl shadow-lg p-5 mb-8 flex flex-wrap gap-4 items-end">
+    
+    <div class="flex flex-col">
+        <label class="text-gray-500 text-sm mb-1">Date début</label>
+        <input type="date" name="date_debut" 
+               value="{{ $date_debut }}"
+               class="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#346693]">
+    </div>
+
+    <div class="flex flex-col">
+        <label class="text-gray-500 text-sm mb-1">Date fin</label>
+        <input type="date" name="date_fin" 
+               value="{{ $date_fin }}"
+               class="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#346693]">
+    </div>
+
+    <button type="submit" 
+            class="bg-[#F16522] text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition">
+        🔍 Filtrer
+    </button>
+
+    <a href="{{ route('admin.reports') }}" 
+       class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 transition">
+        🔄 Réinitialiser
+    </a>
+
+</form>
+        {{-- Ligne 1 --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
+            <div class="bg-white rounded-xl shadow-lg p-5">
+                <h2 class="font-bold text-xl mb-3">🚍 Élèves par trajet</h2>
+                <canvas id="elevesTrajetChart"></canvas>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-5">
+                <h2 class="font-bold text-xl mb-3">❌ Absences par trajet</h2>
+                <canvas id="absencesChart"></canvas>
+            </div>
+
         </div>
 
-        {{-- GRAPHIQUE ABSENCES --}}
-        <div class="bg-white rounded-xl shadow-xl p-5 border border-[#346693]/20 border-t-4 border-t-[#346693] mb-6">
-            <h2 class="text-xl font-bold mb-3 text-[#346693]">Absences par trajet</h2>
-            <canvas id="absencesChart" class="w-full h-40"></canvas>
+        {{-- Ligne 2 --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
+            <div class="bg-white rounded-xl shadow-lg p-5">
+                <h2 class="font-bold text-xl mb-3">✅ Présences par trajet</h2>
+                <canvas id="presencesChart"></canvas>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-5">
+                <h2 class="font-bold text-xl mb-3"> Top élèves absents</h2>
+                <canvas id="elevesAbsentsChart"></canvas>
+            </div>
+
         </div>
 
-        {{-- GRAPHIQUE PRÉSENCES --}}
-        <div class="bg-white rounded-xl shadow-xl p-5 border border-[#346693]/20 border-t-4 border-t-[#346693] mb-6">
-            <h2 class="text-xl font-bold mb-3 text-[#346693]">Présences par trajet</h2>
-            <canvas id="presencesChart" class="w-full h-40"></canvas>
+        {{-- Ligne 3 --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
+            <div class="bg-white rounded-xl shadow-lg p-5">
+                <h2 class="font-bold text-xl mb-3">📈 Présences par mois</h2>
+                <canvas id="presencesMoisChart"></canvas>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-5">
+                <h2 class="font-bold text-xl mb-3">🚌 Utilisation des transports</h2>
+                <canvas id="transportChart"></canvas>
+            </div>
+
         </div>
+
+       
 
     </div>
+
 </div>
 
-{{-- Chart.js --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const absencesCtx = document.getElementById('absencesChart').getContext('2d');
-new Chart(absencesCtx, {
-    type: 'bar',
-    data: {
-        labels: @json($absencesByTrajet->pluck('nom')),
-        datasets: [{ label: 'Nombre d\'absences', data: @json($absencesByTrajet->pluck('absences_count')), backgroundColor: '#F16522' }]
-    },
-    options: { responsive:true, scales:{y:{beginAtZero:true}}, plugins:{legend:{display:false}} }
+
+Chart.defaults.animation = {
+    duration: 2500
+};
+
+// Élèves par trajet
+new Chart(document.getElementById('elevesTrajetChart'), {
+    type:'bar',
+    data:{
+        labels:@json($elevesParTrajet->pluck('nom')),
+        datasets:[{
+            label:'Élèves',
+            data:@json($elevesParTrajet->pluck('eleves_count')),
+            backgroundColor:'#346693'
+        }]
+    }
 });
 
-const presencesCtx = document.getElementById('presencesChart').getContext('2d');
-new Chart(presencesCtx, {
-    type: 'bar',
+// Absences
+new Chart(document.getElementById('absencesChart'), {
+    type:'bar',
+    data:{
+        labels:@json($absencesByTrajet->pluck('nom')),
+        datasets:[{
+            label:'Absences',
+            data:@json($absencesByTrajet->pluck('absences_count')),
+            backgroundColor:'#F16522'
+        }]
+    }
+});
+
+// Présences
+// Présences par trajet
+new Chart(document.getElementById('presencesChart'), {
+    type: 'doughnut',
     data: {
         labels: @json($presencesByTrajet->pluck('nom')),
-        datasets: [{ label: 'Nombre de présences', data: @json($presencesByTrajet->pluck('presences_count')), backgroundColor: '#82D2F5' }]
-    },
-    options: { responsive:true, scales:{y:{beginAtZero:true}}, plugins:{legend:{display:false}} }
+        datasets: [{
+            data: @json($presencesByTrajet->pluck('presences_count')),
+            backgroundColor: [
+                '#346693','#F16522','#10b981','#f59e0b',
+                '#8b5cf6','#ec4899','#06b6d4','#84cc16'
+            ]
+        }]
+    }
 });
+
+// Top absents
+new Chart(document.getElementById('elevesAbsentsChart'), {
+    type:'bar',
+    data:{
+        labels:@json($elevesAbsents->pluck('nom')),
+        datasets:[{
+            data:@json($elevesAbsents->pluck('absences_count')),
+            backgroundColor:'#dc2626'
+        }]
+    },
+    options:{
+        indexAxis:'y'
+    }
+});
+
+// Présences par mois
+new Chart(document.getElementById('presencesMoisChart'), {
+    type:'line',
+    data:{
+        labels:[
+            'Jan','Fev','Mar','Avr','Mai','Jun',
+            'Jul','Aou','Sep','Oct','Nov','Dec'
+        ],
+        datasets:[{
+            label:'Présences',
+            data:@json($presencesParMois),
+            borderColor:'#346693',
+            tension:0.4
+        }]
+    }
+});
+
+// Utilisation des transports
+new Chart(document.getElementById('transportChart'), {
+    type:'pie',
+    data:{
+        labels:@json($utilisationTransports->pluck('plaque_immatriculation')),
+        datasets:[{
+          data:@json($utilisationTransports->pluck('trajets_count'))
+        }]
+    }
+});
+
+// Répartition globale
+
+
 </script>
+
 @endsection

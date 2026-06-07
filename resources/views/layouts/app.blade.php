@@ -140,7 +140,7 @@
             @csrf
             <button type="submit" 
                 class="w-full text-left px-6 py-3 text-white bg-[#F16522] hover:bg-[#346693] font-bold transition-colors duration-200 mt-2">
-                🚪 DÉCONNEXION
+                 DÉCONNEXION
             </button>
         </form>
     </div>

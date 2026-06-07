@@ -7,63 +7,94 @@ use App\Models\User;
 use App\Models\Eleve;
 use App\Models\Transport;
 use App\Models\Trajet;
+use App\Models\Presence;
+use App\Models\Absence;
+use App\Models\BusPosition;
 
 class AdminRapportController extends Controller
 {
-    public function index(Request $request)
-    {
-        // 🔹 Valeurs par défaut pour Absences
-        $mois_absence  = $request->get('mois_absence', now()->month);
-        $annee_absence = $request->get('annee_absence', now()->year);
+   public function index(Request $request)
+{
+    // ==========================
+    // FILTRES DATES
+    // ==========================
+    $date_debut = $request->get('date_debut', now()->startOfMonth()->toDateString());
+    $date_fin   = $request->get('date_fin',   now()->toDateString());
 
-        // 🔹 Valeurs par défaut pour Présences
-        $mois_presence  = $request->get('mois_presence', now()->month);
-        $annee_presence = $request->get('annee_presence', now()->year);
+    // ==========================
+    // STATISTIQUES GÉNÉRALES
+    // ==========================
+    $chauffeursCount = User::where('role', 'chauffeur')->count();
+    $elevesCount     = Eleve::count();
+    $transportsCount = Transport::count();
+    $trajetsCount    = Trajet::count();
 
-        // 🔹 Statistiques générales
-        $chauffeursCount = User::where('role', 'chauffeur')->count();
-        $elevesCount     = Eleve::count();
-        $transportsCount = Transport::count();
-        $trajetsCount    = Trajet::count();
+    // ==========================
+    // BUS ACTIFS
+    // ==========================
+    $busActifs = BusPosition::where('updated_at', '>=', now()->subMinutes(2))->count();
 
-        // 🔹 Absences filtrées
-        $absencesByTrajet = Trajet::with(['absences' => function($q) use($mois_absence, $annee_absence) {
-            $q->where('status', 'active')
-              ->whereMonth('date_absence', $mois_absence)
-              ->whereYear('date_absence', $annee_absence);
-        }])->get()->map(function($trajet) {
-            return [
-                'id' => $trajet->id,
-                'nom' => $trajet->nom,
-                'absences_count' => $trajet->absences->count()
-            ];
-        });
+    // ==========================
+    // ABSENCES PAR TRAJET
+    // ==========================
+    $absencesByTrajet = Trajet::withCount(['absences' => function ($q) use ($date_debut, $date_fin) {
+        $q->whereBetween('date_absence', [$date_debut, $date_fin]);
+    }])->get();
 
-        // 🔹 Présences filtrées
-        $presencesByTrajet = Trajet::with(['presences' => function($q) use($mois_presence, $annee_presence) {
-            $q->where('status', 'active')
-              ->whereMonth('date_presence', $mois_presence)
-              ->whereYear('date_presence', $annee_presence);
-        }])->get()->map(function($trajet) {
-            return [
-                'id' => $trajet->id,
-                'nom' => $trajet->nom,
-                'presences_count' => $trajet->presences->count()
-            ];
-        });
+    // ==========================
+    // PRÉSENCES PAR TRAJET
+    // ==========================
+    $presencesByTrajet = Trajet::withCount(['presences' => function ($q) use ($date_debut, $date_fin) {
+        $q->whereBetween('date_presence', [$date_debut, $date_fin]);
+    }])->get();
 
-        // 🔹 Envoi des données à la vue
-        return view('admin.rapports', compact(
-            'chauffeursCount',
-            'elevesCount',
-            'transportsCount',
-            'trajetsCount',
-            'absencesByTrajet',
-            'presencesByTrajet',
-            'mois_absence',
-            'annee_absence',
-            'mois_presence',
-            'annee_presence'
-        ));
+    // ==========================
+    // ÉLÈVES PAR TRAJET
+    // ==========================
+    $elevesParTrajet = Trajet::withCount('eleves')->get();
+
+    // ==========================
+    // TOP ÉLÈVES ABSENTS
+    // ==========================
+    $elevesAbsents = Eleve::withCount(['absences' => function ($q) use ($date_debut, $date_fin) {
+        $q->whereBetween('date_absence', [$date_debut, $date_fin]);
+    }])
+    ->orderByDesc('absences_count')
+    ->take(10)
+    ->get();
+
+    // ==========================
+    // UTILISATION TRANSPORTS
+    // ==========================
+    $utilisationTransports = Transport::withCount('trajets')->get();
+
+    // ==========================
+    // PRÉSENCES PAR MOIS
+    // ==========================
+    $presencesParMois = [];
+    for ($i = 1; $i <= 12; $i++) {
+        $presencesParMois[] = Presence::whereYear('date_presence', now()->year)
+            ->whereMonth('date_presence', $i)
+            ->count();
     }
+
+    // ==========================
+    // ABSENCES PAR MOIS
+    // ==========================
+    $absencesParMois = [];
+    for ($i = 1; $i <= 12; $i++) {
+        $absencesParMois[] = Absence::whereYear('date_absence', now()->year)
+            ->whereMonth('date_absence', $i)
+            ->count();
+    }
+
+    return view('admin.rapports', compact(
+        'chauffeursCount', 'elevesCount', 'transportsCount',
+        'trajetsCount', 'busActifs',
+        'absencesByTrajet', 'presencesByTrajet', 'elevesParTrajet',
+        'elevesAbsents', 'utilisationTransports',
+        'presencesParMois', 'absencesParMois',
+        'date_debut', 'date_fin'
+    ));
+}
 }

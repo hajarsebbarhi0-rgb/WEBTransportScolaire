@@ -60,9 +60,11 @@ Route::middleware(['auth', 'role:admin'])
         // >>> Gestion des trajets (Recherche dynamique placée AVANT la ressource) <<<
         Route::get('/trajets/search', [TrajetController::class, 'search'])->name('trajets.search'); 
         Route::resource('trajets', TrajetController::class);
-        
+       
         // Rapports
-        Route::get('/reports', [AdminDashboardController::class, 'reports'])->name('reports');
+     Route::get('/reports',
+    [AdminRapportController::class, 'index']
+)->name('reports');
         Route::get('/historique', [HistoriqueController::class, 'index'])->name('historique.index');
          Route::get('/suivi', [AdminDashboardController::class, 'suivi'])->name('suivi');
         Route::get('/presences', [AdminDashboardController::class, 'presences'])
@@ -70,7 +72,7 @@ Route::middleware(['auth', 'role:admin'])
 
     });
 
-Route::get('/admin/rapports', [AdminRapportController::class, 'index'])->name('admin.rapports');
+
 require __DIR__.'/auth.php';
 Route::get('/password-reset-success', function () {
     return view('password-reset-success'); // Aucun préfixe de dossier nécessaire
