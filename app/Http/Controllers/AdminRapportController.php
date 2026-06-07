@@ -32,9 +32,10 @@ class AdminRapportController extends Controller
     // ==========================
     // BUS ACTIFS
     // ==========================
-   $busActifs = BusPosition::where('updated_at', '>=', now()->subMinutes(2))
-    ->distinct('transport_id')  // ou 'bus_id' selon ton schéma
-    ->count('transport_id');
+BusPosition::where('updated_at', '>=', now()->subMinutes(2))
+    ->join('trajets', 'bus_positions.trajet_id', '=', 'trajets.id')
+    ->distinct('trajets.transport_id')
+    ->count('trajets.transport_id');
 
     // ==========================
     // ABSENCES PAR TRAJET
