@@ -92,8 +92,10 @@ class AdminDashboardController extends Controller
                 ->groupBy('trajet_id');
         })
         ->get();
+           // Liste complète des transports
+    $transports = Transport::all();
 
-    return view('admin.suivi', compact('positions'));
+   return view('admin.suivi', compact('positions', 'transports'));
 }
     //Présence 
   

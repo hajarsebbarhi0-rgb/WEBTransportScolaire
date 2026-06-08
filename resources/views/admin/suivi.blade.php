@@ -105,5 +105,53 @@ document.addEventListener("DOMContentLoaded", function () {
     loadPositions();
 });
 </script>
+{{-- LISTE DES TRANSPORTS --}}
+<div class="mt-12">
+
+    <h2 class="text-3xl font-bold text-center text-[#F16522] mb-8">
+        🚍 Parc des Véhicules
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        @foreach($transports as $transport)
+
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-[#82D2F5]">
+
+                <h3 class="text-xl font-bold text-[#346693] mb-3">
+                    {{ $transport->immatriculation }}
+                </h3>
+
+                <p>
+                    <strong>Type :</strong>
+                    {{ $transport->type ?? 'Non renseigné' }}
+                </p>
+
+                <p>
+                    <strong>Capacité :</strong>
+                    {{ $transport->capacite ?? 'Non renseignée' }}
+                </p>
+
+                <p class="mt-3">
+                    <strong>Statut :</strong>
+
+                    @if($transport->status == 'en_service')
+                        <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
+                            En service
+                        </span>
+                    @else
+                        <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm">
+                            Hors service
+                        </span>
+                    @endif
+                </p>
+
+            </div>
+
+        @endforeach
+
+    </div>
+
+</div>
 
 @endsection
