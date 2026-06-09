@@ -1,6 +1,27 @@
 @extends('layouts.app')
 
 @section('content')
+
+{{-- ✅ CSS en premier --}}
+<style>
+    #map {
+        z-index: 0 !important;
+        position: relative !important;
+    }
+    .leaflet-pane,
+    .leaflet-top,
+    .leaflet-bottom {
+        z-index: 0 !important;
+    }
+    .leaflet-control {
+        z-index: 1 !important;
+    }
+</style>
+
+{{-- Leaflet --}}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <div class="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
 
     {{-- EN-TÊTE --}}
@@ -25,14 +46,9 @@
 
 </div>
 
-{{-- Leaflet --}}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    // 🗺️ Initialisation carte
     var map = L.map('map').setView([33.5731, -7.5898], 10);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -41,117 +57,100 @@ document.addEventListener("DOMContentLoaded", function () {
 
     var markers = {};
 
-   var busIcon = L.icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/3448/3448339.png",
-    iconSize: [45, 45],
-    iconAnchor: [22, 22],
-    popupAnchor: [0, -22]
-});
+    var busIcon = L.icon({
+        iconUrl: "https://cdn-icons-png.flaticon.com/512/3448/3448339.png",
+        iconSize: [45, 45],
+        iconAnchor: [22, 22],
+        popupAnchor: [0, -22]
+    });
 
-    // 🔥 FONCTION PRINCIPALE
-  async function loadPositions() {
-    try {
-        const response = await fetch('/api/admin/bus-positions');
-        const data = await response.json();
+    // ✅ Markers réels depuis PHP
+    var initialPositions = @json($positions);
 
-        if (!data.length) return;
+    initialPositions.forEach(function(vehicle) {
+        if (!vehicle.latitude || !vehicle.longitude) return;
 
-        let bounds = [];
+        let lat = parseFloat(vehicle.latitude);
+        let lng = parseFloat(vehicle.longitude);
 
-        data.forEach(vehicle => {
-            if (!vehicle.latitude || !vehicle.longitude) return;
+        let marker = L.marker([lat, lng], { icon: busIcon }).addTo(map);
 
-            let lat = parseFloat(vehicle.latitude);
-            let lng = parseFloat(vehicle.longitude);
+        marker.bindPopup(`
+            <div style="font-size:14px; line-height:1.8;">
+                <strong>🚍 Trajet :</strong> ${vehicle.trajet?.nom ?? 'N/A'}<br>
+                <strong>👨‍✈️ Chauffeur :</strong> ${vehicle.trajet?.chauffeur?.nom ?? 'N/A'}<br>
+                <strong>🕒 Mise à jour :</strong> ${new Date(vehicle.updated_at).toLocaleTimeString('fr-FR')}
+            </div>
+        `);
 
-            bounds.push([lat, lng]);
+        markers[vehicle.trajet_id] = marker;
+    });
 
-            if (markers[vehicle.trajet_id]) {
-                // ✅ Déplace le marker existant (animation naturelle)
-                markers[vehicle.trajet_id].setLatLng([lat, lng]);
-            } else {
-                // ✅ Crée le marker la première fois
-                let marker = L.marker([lat, lng], { icon: busIcon }).addTo(map);
+    // 🎭 Markers DEMO pour présentation
+    var demoPositions = [
+        { trajet_id: 'demo1', latitude: 33.5892, longitude: -7.6031, nom_trajet: 'Ligne 1 - Hay Riad',    chauffeur: 'Mohammed A.' },
+        { trajet_id: 'demo2', latitude: 33.5650, longitude: -7.5800, nom_trajet: 'Ligne 2 - Ain Chock',   chauffeur: 'Youssef B.'  },
+        { trajet_id: 'demo3', latitude: 33.5500, longitude: -7.6200, nom_trajet: 'Ligne 3 - Sidi Maarouf', chauffeur: 'Khalid C.'  }
+    ];
 
-                marker.bindPopup(`
-                    <div style="font-size:14px; line-height:1.8;">
-                        <strong>🚍 Trajet :</strong> ${vehicle.trajet?.nom ?? 'N/A'}<br>
-                        <strong>👨‍✈️ Chauffeur :</strong> ${vehicle.trajet?.chauffeur?.nom ?? 'N/A'}<br>
-                        <strong>🕒 Mise à jour :</strong> ${new Date(vehicle.updated_at).toLocaleTimeString('fr-FR')}
-                    </div>
-                `);
+    demoPositions.forEach(function(vehicle) {
+        let marker = L.marker([vehicle.latitude, vehicle.longitude], { icon: busIcon }).addTo(map);
+        marker.bindPopup(`
+            <div style="font-size:14px; line-height:1.8;">
+                <strong>🚍 Trajet :</strong> ${vehicle.nom_trajet}<br>
+                <strong>👨‍✈️ Chauffeur :</strong> ${vehicle.chauffeur}<br>
+                <strong>🕒 Mise à jour :</strong> ${new Date().toLocaleTimeString('fr-FR')}
+            </div>
+        `);
+    });
 
-                markers[vehicle.trajet_id] = marker;
-            }
-        });
+    // 🔥 Refresh dynamique
+    async function loadPositions() {
+        try {
+            const response = await fetch('/api/admin/bus-positions');
+            const data = await response.json();
 
-        // ✅ Supprimer les markers des trajets qui ne sont plus actifs
-        Object.keys(markers).forEach(trajetId => {
-            const stillActive = data.find(v => v.trajet_id == trajetId);
-            if (!stillActive) {
-                map.removeLayer(markers[trajetId]);
-                delete markers[trajetId];
-            }
-        });
+            if (!data.length) return;
 
-    } catch (error) {
-        console.log("Erreur chargement positions", error);
+            data.forEach(vehicle => {
+                if (!vehicle.latitude || !vehicle.longitude) return;
+
+                let lat = parseFloat(vehicle.latitude);
+                let lng = parseFloat(vehicle.longitude);
+
+                if (markers[vehicle.trajet_id]) {
+                    markers[vehicle.trajet_id].setLatLng([lat, lng]);
+                } else {
+                    let marker = L.marker([lat, lng], { icon: busIcon }).addTo(map);
+                    marker.bindPopup(`
+                        <div style="font-size:14px; line-height:1.8;">
+                            <strong>🚍 Trajet :</strong> ${vehicle.trajet?.nom ?? 'N/A'}<br>
+                            <strong>👨‍✈️ Chauffeur :</strong> ${vehicle.trajet?.chauffeur?.nom ?? 'N/A'}<br>
+                            <strong>🕒 Mise à jour :</strong> ${new Date(vehicle.updated_at).toLocaleTimeString('fr-FR')}
+                        </div>
+                    `);
+                    markers[vehicle.trajet_id] = marker;
+                }
+            });
+
+            Object.keys(markers).forEach(trajetId => {
+                const stillActive = data.find(v => v.trajet_id == trajetId);
+                if (!stillActive) {
+                    map.removeLayer(markers[trajetId]);
+                    delete markers[trajetId];
+                }
+            });
+
+        } catch (error) {
+            console.log("Erreur chargement positions", error);
+        }
     }
-}
 
-    // 🔁 Auto refresh
     setInterval(loadPositions, 3000);
-
     loadPositions();
 });
 </script>
-{{-- LISTE DES TRANSPORTS --}}
-<div class="mt-12">
 
-    <h2 class="text-3xl font-bold text-center text-[#F16522] mb-8">
-        🚍 Parc des Véhicules
-    </h2>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-        @foreach($transports as $transport)
-
-            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-[#82D2F5]">
-
-                <h3 class="text-xl font-bold text-[#346693] mb-3">
-                    {{ $transport->immatriculation }}
-                </h3>
-
-                <p>
-                    <strong>Type :</strong>
-                    {{ $transport->type ?? 'Non renseigné' }}
-                </p>
-
-                <p>
-                    <strong>Capacité :</strong>
-                    {{ $transport->capacite ?? 'Non renseignée' }}
-                </p>
-
-                <p class="mt-3">
-                    <strong>Statut :</strong>
-
-                    @if($transport->status == 'en_service')
-                        <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
-                            En service
-                        </span>
-                    @else
-                        <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm">
-                            Hors service
-                        </span>
-                    @endif
-                </p>
-
-            </div>
-
-        @endforeach
-
-    </div>
-
-</div>
 
 @endsection

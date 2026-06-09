@@ -83,22 +83,18 @@ class AdminDashboardController extends Controller
 
     // 🟢 NOUVELLE MÉTHODE POUR LA PAGE DE SUIVI EN TEMPS RÉEL
   public function suivi()
-{
-    $positions = BusPosition::with('trajet.chauffeur')
-    ->where('updated_at', '>=', now()->subMinutes(2))
-        ->whereIn('id', function ($query) {
-            $query->selectRaw('MAX(id)')
-                ->from('bus_positions')
-                ->groupBy('trajet_id');
-        })
-        ->get();
-           // Liste complète des transports
-    $transports = Transport::all();
+    {
+        $positions = BusPosition::with('trajet.chauffeur')
+            ->where('updated_at', '>=', now()->subMinutes(2))
+            ->whereIn('id', function ($query) {
+                $query->selectRaw('MAX(id)')
+                    ->from('bus_positions')
+                    ->groupBy('trajet_id');
+            })
+            ->get();
 
-   return view('admin.suivi', compact('positions', 'transports'));
-}
-    //Présence 
-  
+        return view('admin.suivi', compact('positions'));
+    }
 
    // Méthode présence avec filtre mois/année
 public function busPositions()
